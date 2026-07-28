@@ -1,258 +1,190 @@
 <template>
-  <div class="app-container">
-    <!-- 常驻悬浮分享按钮 (H5 / 移动端与桌面端通用) -->
-    <button class="floating-share-btn" @click="showShareGuide = true">
-      <svg class="share-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="18" cy="5" r="3"></circle>
-        <circle cx="6" cy="12" r="3"></circle>
-        <circle cx="18" cy="19" r="3"></circle>
-        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-      </svg>
-      <span>分享科普工具</span>
-    </button>
+  <div class="app-container static-baike-container">
+    <!-- 成功提示 -->
+    <div v-if="copied" class="top-success-toast">
+      已成功复制到剪贴板
+    </div>
 
     <header>
-      <div class="user-status-bar" style="margin-bottom: 0.75rem; font-size: 0.8rem; text-align: center;">
-        <span v-if="isLoggedIn" class="status-badge logged-in" style="background: rgba(192, 132, 252, 0.15); color: #c084fc; padding: 4px 12px; border-radius: 12px; border: 1px solid rgba(192, 132, 252, 0.3);">
-          已登录 (每日 15 次额度 · 今日已用: {{ authUsesCount }}/15)
-        </span>
-      </div>
       <h1>{{ appTitle }}</h1>
-      <p>科学现象深入浅出 · 趣味冷知识解密 · 生动类比破题</p>
+      <p>智能 AI 科普与工具选型系统 · 洞察人工智能演进脉络</p>
     </header>
 
-    <!-- 动态广播轮播 -->
-    <UserTicker />
+    <!-- 顶部分类控制区 (Card Tabs) -->
+    <nav class="card-tabs navigation-tabs">
+      <button 
+        class="tab-btn" 
+        :class="{ active: activeTab === 'timeline' }"
+        @click="activeTab = 'timeline'"
+      >
+        AI 历史进程
+      </button>
+      <button 
+        class="tab-btn" 
+        :class="{ active: activeTab === 'landscape' }"
+        @click="activeTab = 'landscape'"
+      >
+        主流大模型地图
+      </button>
+      <button 
+        class="tab-btn" 
+        :class="{ active: activeTab === 'tools' }"
+        @click="activeTab = 'tools'"
+      >
+        核心工具推荐
+      </button>
+      <button 
+        class="tab-btn" 
+        :class="{ active: activeTab === 'glossary' }"
+        @click="activeTab = 'glossary'"
+      >
+        术语百科字典
+      </button>
+    </nav>
 
-    <!-- 核心操作区卡片 -->
-    <main ref="inputCardRef" class="glass-card input-group">
-      <!-- 科普模式选择 -->
-      <div class="selector-group">
-        <label class="selector-label">选择科普与讲解模式</label>
-        <div class="style-selector">
-          <button 
-            v-for="mode in modeOptions" 
-            :key="mode.value"
-            class="style-option"
-            :class="{ active: activeMode === mode.value }"
-            @click="activeMode = mode.value"
+    <!-- 主展示面板 -->
+    <main class="main-content-panel">
+      
+      <!-- 1. AI 历史进程面板 -->
+      <section v-if="activeTab === 'timeline'" class="glass-card timeline-panel">
+        <h2 class="panel-section-title">人工智能演进史</h2>
+        <p class="panel-section-desc">从图灵测试的哲学萌芽，到超大规模深度神经网络的狂飙突进，回顾人工智能历史的关键节点。</p>
+        
+        <div class="vertical-timeline">
+          <div 
+            v-for="(item, index) in timelineData" 
+            :key="index"
+            class="timeline-item"
           >
-            {{ mode.label }}
-          </button>
-        </div>
-      </div>
-
-      <!-- 知识领域与受众选择 -->
-      <div class="options-row" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-        <div class="selector-group">
-          <label class="selector-label">知识分类领域</label>
-          <div class="style-selector">
-            <button 
-              v-for="domain in domainOptions" 
-              :key="domain"
-              class="style-option"
-              :class="{ active: selectedDomain === domain }"
-              @click="selectedDomain = domain"
-            >
-              {{ domain }}
-            </button>
+            <div class="timeline-badge-year">{{ item.year }}</div>
+            <div class="timeline-content-card">
+              <h3 class="timeline-item-title">{{ item.title }}</h3>
+              <p class="timeline-item-desc">{{ item.desc }}</p>
+              <span class="timeline-item-tag">{{ item.tag }}</span>
+            </div>
           </div>
         </div>
+      </section>
 
-        <div class="selector-group">
-          <label class="selector-label">目标读者受众</label>
-          <div class="style-selector">
-            <button 
-              v-for="aud in audienceOptions" 
-              :key="aud"
-              class="style-option"
-              :class="{ active: selectedAudience === aud }"
-              @click="selectedAudience = aud"
-            >
-              {{ aud }}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 科普问题与主题输入框 -->
-      <div class="selector-group">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <label class="selector-label">输入科普问题、科学现象或百科主题</label>
-          <div style="display: flex; gap: 0.5rem;">
-            <button v-if="userInput" class="text-link-btn" @click="userInput = ''">清空输入</button>
-            <button class="text-link-btn" @click="showMindmapModal = true">科普思维破题灵感</button>
-          </div>
-        </div>
-        <textarea 
-          v-model="userInput" 
-          placeholder="请输入您想探究的百科问题...（例：为什么靠近黑洞时间会变慢？请用生动有趣的比喻向高中生解释引力透镜与时间膨胀效应。）"
-          style="min-height: 130px;"
-        ></textarea>
-        <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary);">
-          <span>字符数: {{ userInput.length }} 字</span>
-          <span>支持自然语言提问、原理探究或自媒体文案需求</span>
-        </div>
-      </div>
-
-      <!-- 操作按钮区 -->
-      <div style="display: flex; gap: 0.75rem;">
-        <button 
-          class="action-btn" 
-          :disabled="loading || !userInput.trim()"
-          @click="handleGenerate"
-        >
-          {{ loading ? '正在深入浅出为您拆解科普原理中...' : '开始生成趣味百科与科普解读' }}
-        </button>
-        <button class="icon-btn" style="padding: 0 1rem; border-radius: 10px;" @click="toggleHistoryDrawer">
-          历史问答 ({{ historyList.length }})
-        </button>
-      </div>
-
-      <!-- 异常提示 -->
-      <div v-if="errorMsg" style="color: var(--accent-color); font-size: 0.85rem; text-align: center; margin-top: 0.5rem;">
-        {{ errorMsg }}
-      </div>
-    </main>
-
-    <!-- 生成结果卡片 -->
-    <section v-if="result || loading" class="glass-card">
-      <div class="result-header">
-        <span class="result-title">趣味百科与科普解读报告</span>
-        <div class="button-actions">
-          <button v-if="result" class="icon-btn" @click="copyText">
-            {{ copied ? '已复制解读全文' : '复制科普内容' }}
-          </button>
-          <button v-if="result" class="icon-btn" @click="resetResult">
-            重置
-          </button>
-        </div>
-      </div>
-
-      <!-- 加载中骨架屏 -->
-      <div v-if="loading" class="skeleton">
-        <div class="skeleton-line" style="width: 85%"></div>
-        <div class="skeleton-line" style="width: 95%"></div>
-        <div class="skeleton-line" style="width: 70%"></div>
-        <div class="skeleton-line" style="width: 90%"></div>
-        <div class="skeleton-line" style="width: 60%"></div>
-      </div>
-
-      <!-- 渲染结果 -->
-      <div v-else-if="result">
-        <!-- AI 共识打分可视化看板 -->
-        <div v-if="aiScores" class="scores-container" style="margin-bottom: 1.5rem; padding: 1.25rem; background: rgba(0,0,0,0.25); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);">
-          <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 1rem; color: #a5b4fc; display: flex; justify-content: space-between; align-items: center;">
-            <span>AI 科普传播质量评估看板</span>
-            <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-secondary);">综合质量分: {{ getAverageScoreFromMap(aiScores) }} / 5.0</span>
-          </div>
-          <div class="metrics-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem;">
-            <div v-for="metric in metricsList" :key="metric.key" class="metric-item">
-              <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.3rem;">
-                <span style="color: var(--text-secondary);">{{ metric.label }}</span>
-                <span style="font-weight: bold; color: var(--accent-color);">{{ aiScores[metric.key] || 4 }} / 5</span>
-              </div>
-              <div class="bar-bg" style="height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden;">
-                <div class="bar-fill" :style="{ width: ((aiScores[metric.key] || 4) * 20) + '%', background: 'var(--primary-gradient)', height: '100%', borderRadius: '3px', transition: 'width 0.5s ease' }"></div>
+      <!-- 2. 主流大模型地图面板 -->
+      <section v-if="activeTab === 'landscape'" class="glass-card landscape-panel">
+        <h2 class="panel-section-title">主流 AI 厂商与模型格局</h2>
+        <p class="panel-section-desc">为您梳理全球与国内最具代表性的 AI 科技巨头、初创独角兽及其基座模型矩阵。</p>
+        
+        <div class="landscape-grid">
+          <div 
+            v-for="(vendor, index) in landscapeData" 
+            :key="index"
+            class="vendor-card"
+          >
+            <div class="vendor-card-header">
+              <span class="vendor-badge" :class="vendor.region === 'global' ? 'global' : 'domestic'">
+                {{ vendor.region === 'global' ? '全球先驱' : '国内主力' }}
+              </span>
+              <h3>{{ vendor.name }}</h3>
+            </div>
+            <p class="vendor-desc">{{ vendor.description }}</p>
+            <div class="vendor-models">
+              <strong>旗舰大模型：</strong>
+              <div class="model-tag-group">
+                <span v-for="(model, mIdx) in vendor.models" :key="mIdx" class="model-tag">
+                  {{ model }}
+                </span>
               </div>
             </div>
           </div>
         </div>
+      </section>
 
-        <div class="output-content">{{ displayResultText }}</div>
-      </div>
-    </section>
-
-    <!-- 历史记录面板 -->
-    <section v-if="showHistory" class="glass-card" style="margin-top: 1rem;">
-      <div class="result-header">
-        <span class="result-title">本地科普问答与百科历史记录</span>
-        <button class="icon-btn" @click="showHistory = false">关闭记录</button>
-      </div>
-
-      <div v-if="historyList.length === 0" style="text-align: center; color: var(--text-secondary); padding: 1.5rem; font-size: 0.85rem;">
-        暂无历史问答记录，开始探索一次趣味科普吧！
-      </div>
-
-      <div v-else class="history-grid" style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 320px; overflow-y: auto;">
-        <div v-for="item in historyList" :key="item.id" class="history-item" style="padding: 1rem; background: rgba(0,0,0,0.2); border-radius: 10px; border: 1px solid var(--card-border);">
-          <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.4rem;">
-            <span>{{ item.timestamp }} · [{{ item.mode }} / {{ item.domain }}]</span>
-            <span style="color: var(--primary-color);">评分: {{ getAverageScore(item) }}</span>
-          </div>
-          <div style="font-size: 0.85rem; font-weight: bold; margin-bottom: 0.4rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary);">
-            问题: {{ item.input }}
-          </div>
-          <div style="display: flex; gap: 0.5rem;">
-            <button class="icon-btn" style="font-size: 0.75rem;" @click="applyHistory(item)">套用问题</button>
-            <button class="icon-btn" style="font-size: 0.75rem;" @click="viewHistoryOutput(item)">查看科普全文</button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 科普模版 Showcase -->
-    <NomadsShowcase
-      @apply-template="handleApplyTemplate"
-    />
-
-    <!-- 科普思维导图灵感 Modal -->
-    <div v-if="showMindmapModal" class="modal-overlay" @click.self="showMindmapModal = false">
-      <div class="modal-content" style="max-width: 480px;">
-        <h3>科普思维与生动类比灵感法</h3>
-        <p style="text-align: left; font-size: 0.825rem; margin-bottom: 1rem; color: var(--text-secondary);">
-          高质量科普的核心在于将抽象概念转化为具象感受，常用的破题切入法：
-        </p>
-        <div class="modal-scroll-area" style="text-align: left; font-size: 0.825rem;">
-          <div v-for="(tip, idx) in scienceTips" :key="idx" style="margin-bottom: 0.75rem; padding: 0.5rem 0.75rem; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
-            <div style="color: var(--accent-color); font-weight: bold; margin-bottom: 0.2rem;">{{ tip.title }}</div>
-            <div style="color: var(--text-primary); margin-bottom: 0.2rem;">破题公式: {{ tip.formula }}</div>
-            <div style="color: var(--text-secondary); font-size: 0.775rem;">经典案例: {{ tip.example }}</div>
-          </div>
-        </div>
-        <button class="modal-btn" style="margin-top: 1rem;" @click="showMindmapModal = false">关闭</button>
-      </div>
-    </div>
-
-    <!-- 微信 H5 悬浮分享引导 Modal -->
-    <div v-if="showShareGuide" class="modal-overlay" @click.self="showShareGuide = false">
-      <div class="modal-content">
-        <h3>分享趣味百科与科普工具</h3>
-        <p>扫码关注或将链接转发给好友与孩子，一起保持好奇心与科学探索精神。</p>
+      <!-- 3. 核心工具推荐面板 -->
+      <section v-if="activeTab === 'tools'" class="glass-card tools-panel">
+        <h2 class="panel-section-title">优秀 AIGC 生产力工具选型</h2>
+        <p class="panel-section-desc">聚焦文本生成、图像生成、全栈编程、音频视频等垂直领域，为您挑选当下最实用的 AI 工具。</p>
         
-        <div class="qr-code-placeholder">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
-            <rect width="100" height="100" fill="white"/>
-            <rect x="5" y="5" width="25" height="25" fill="#110e24"/>
-            <rect x="9" y="9" width="17" height="17" fill="white"/>
-            <rect x="13" y="13" width="9" height="9" fill="#110e24"/>
-            <rect x="70" y="5" width="25" height="25" fill="#110e24"/>
-            <rect x="74" y="9" width="17" height="17" fill="white"/>
-            <rect x="78" y="13" width="9" height="9" fill="#110e24"/>
-            <rect x="5" y="70" width="25" height="25" fill="#110e24"/>
-            <rect x="9" y="74" width="17" height="17" fill="white"/>
-            <rect x="13" y="78" width="9" height="9" fill="#110e24"/>
-            <rect x="35" y="10" width="8" height="8" fill="#110e24"/>
-            <rect x="48" y="5" width="6" height="12" fill="#110e24"/>
-            <rect x="60" y="15" width="5" height="5" fill="#110e24"/>
-            <rect x="35" y="35" width="10" height="10" fill="#110e24"/>
-            <rect x="50" y="45" width="15" height="8" fill="#110e24"/>
-            <rect x="40" y="70" width="8" height="16" fill="#110e24"/>
-            <rect x="55" y="65" width="10" height="10" fill="#110e24"/>
-            <rect x="75" y="40" width="12" height="12" fill="#110e24"/>
-            <rect x="75" y="75" width="15" height="15" fill="#110e24"/>
-            <rect x="45" y="80" width="8" height="8" fill="#110e24"/>
-          </svg>
+        <!-- 工具分类过滤器 -->
+        <div class="tool-filters">
+          <button 
+            v-for="cat in toolCategories" 
+            :key="cat.value"
+            class="filter-chip"
+            :class="{ active: selectedToolCat === cat.value }"
+            @click="selectedToolCat = cat.value"
+          >
+            {{ cat.label }}
+          </button>
         </div>
 
-        <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1.5rem;">
-          微信号: <span style="color: var(--primary-color); font-weight: bold;">{{ wechatId }}</span>
+        <!-- 工具列表 -->
+        <div class="tools-grid">
+          <div 
+            v-for="(tool, index) in filteredTools" 
+            :key="index"
+            class="tool-card"
+          >
+            <div class="tool-card-header">
+              <h3>{{ tool.name }}</h3>
+              <span class="tool-rating">★ {{ tool.rating }}</span>
+            </div>
+            <p class="tool-desc">{{ tool.desc }}</p>
+            <div class="tool-tags">
+              <span v-for="(tag, tIdx) in tool.tags" :key="tIdx" class="tool-tag">
+                {{ tag }}
+              </span>
+            </div>
+            <div class="tool-card-action">
+              <button class="action-btn-sm" @click="handleCopyLink(tool.name)">
+                复制工具名称
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. 术语百科字典面板 -->
+      <section v-if="activeTab === 'glossary'" class="glass-card glossary-panel">
+        <h2 class="panel-section-title">核心 AI 术语百科</h2>
+        <p class="panel-section-desc">为您解答大模型（LLM）、提示工程（Prompt）、检索增强（RAG）等行业黑话与底层技术概念。</p>
+        
+        <!-- 术语搜索栏 -->
+        <div class="search-bar-wrapper">
+          <input 
+            v-model="searchQuery" 
+            type="text" 
+            placeholder="搜索 AI 术语、技术指标或缩写..."
+            class="glossary-search-input"
+          />
         </div>
 
-        <button class="modal-btn" @click="showShareGuide = false">关闭</button>
-      </div>
-    </div>
+        <!-- 术语折叠卡片列表 -->
+        <div class="glossary-list">
+          <div 
+            v-for="(item, index) in filteredGlossary" 
+            :key="index"
+            class="glossary-item-card"
+            :class="{ expanded: expandedGlossaryIndex === index }"
+            @click="toggleGlossary(index)"
+          >
+            <div class="glossary-item-header">
+              <div class="glossary-term-group">
+                <span class="term-abbr">{{ item.term }}</span>
+                <span class="term-full-name">{{ item.fullName }}</span>
+              </div>
+              <span class="expand-indicator">{{ expandedGlossaryIndex === index ? '▲' : '▼' }}</span>
+            </div>
+            <div v-if="expandedGlossaryIndex === index" class="glossary-item-body">
+              <p>{{ item.definition }}</p>
+              <div v-if="item.example" class="glossary-example-box">
+                <strong>通俗示例：</strong> {{ item.example }}
+              </div>
+            </div>
+          </div>
+          <div v-if="filteredGlossary.length === 0" class="no-results-box">
+            未找到与 “{{ searchQuery }}” 相关的学术术语。
+          </div>
+        </div>
+      </section>
+
+    </main>
 
     <!-- 底部隐私与服务条款链接 -->
     <footer class="footer-links">
@@ -260,8 +192,6 @@
       <button class="footer-link-btn" @click="showTerms = true">Terms of Service</button>
       <button class="footer-link-btn" @click="showContact = true">Contact Us</button>
       <a href="https://api.wuxian.xyz/sign-up?aff=OyRY" target="_blank" rel="noopener noreferrer" class="footer-link-btn">API 平台</a>
-      <a href="https://www.kutuyun.com/aff/IPJKCKWF" target="_blank" rel="noopener noreferrer" class="footer-link-btn">酷兔云</a>
-      <a href="https://bandwagonhost.com/aff.php?aff=48115" target="_blank" rel="noopener noreferrer" class="footer-link-btn">搬瓦工</a>
     </footer>
 
     <!-- 隐私政策弹窗 -->
@@ -269,8 +199,8 @@
       <div class="modal-content">
         <h3>Privacy Policy</h3>
         <div class="modal-text-content modal-scroll-area">
-          <p>我们重视您的知识检索隐私。您在本工具中输入的问题与百科探究仅用于实时大模型生成，系统不会在云端存储您的私密提问。</p>
-          <p>为了保障免费使用额度，本应用会在您的浏览器本地（localStorage）记录试用次数与解锁状态。</p>
+          <p>我们非常重视您的隐私。作为纯静态科普系统，本页面不涉及任何账户登录，不收集、不上传任何个人偏好或检索记录。</p>
+          <p>仅会使用浏览器的本地存储（LocalStorage）记录您的页签浏览偏好，以提供一致的使用体验。</p>
         </div>
         <button class="modal-btn" @click="showPrivacy = false">关闭</button>
       </div>
@@ -281,8 +211,8 @@
       <div class="modal-content">
         <h3>Terms of Service</h3>
         <div class="modal-text-content modal-scroll-area">
-          <p>欢迎使用网腾无限 AI 趣味百科与科普知识专家。本工具生成的解答旨在传播科学知识、激发求知欲。</p>
-          <p>解答内容由大模型基于前沿科学文献与公开百科数据生成，专业医疗、法律或工程设计场景请结合权威专业文献。</p>
+          <p>欢迎浏览 AI 认知地图百科系统。本应用包含的所有数据与评测分值均基于当前开源技术客观汇编整理，仅供科普展示与工具选型参考。</p>
+          <p>本站中引用的所有第三方工具商标、品牌名称与产品权益，归各自厂商所有，本站仅进行客观学术归类。</p>
         </div>
         <button class="modal-btn" @click="showTerms = false">关闭</button>
       </div>
@@ -309,307 +239,518 @@
         <button class="modal-btn" @click="showContact = false">关闭</button>
       </div>
     </div>
-
-    <!-- 裂变拦截弹窗 -->
-    <FissionModal 
-      :visible="showFission" 
-      :wechat-id="wechatId"
-      @unlocked="handleUnlocked"
-    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
-import UserTicker from './components/UserTicker.vue';
-import FissionModal from './components/FissionModal.vue';
-import NomadsShowcase from './components/NomadsShowcase.vue';
-import appConfig from './config.json';
+import { ref, computed } from 'vue';
 import weixinImg from '../asset/weixin.png';
 import dingtalkImg from '../asset/dingtalk.png';
 
-// 配置参数
-const appTitle = ref(appConfig.title || '网腾无限AI - 趣味百科与科普知识专家');
-const wechatId = ref(appConfig.wechatId || 'ai_wuxian_xyz');
-const promptTopic = ref(appConfig.promptTopic || '');
+// 静态站点元信息
+const appTitle = ref('AI 认知地图');
+const activeTab = ref('timeline');
+const selectedToolCat = ref('all');
+const searchQuery = ref('');
+const expandedGlossaryIndex = ref<number | null>(null);
 
-const inputCardRef = ref<HTMLElement | null>(null);
-const userInput = ref('');
-const loading = ref(false);
-const errorMsg = ref('');
-const result = ref('');
 const copied = ref(false);
-
-const showFission = ref(false);
 const showPrivacy = ref(false);
 const showTerms = ref(false);
 const showContact = ref(false);
-const showShareGuide = ref(false);
-const showMindmapModal = ref(false);
 
-// 解析 Cookie
-const getCookie = (name: string): string | null => {
-  const nameEQ = name + "=";
-  const ca = document.cookie.split(';');
-  for (let i = 0; i < ca.length; i++) {
-    let c = ca[i];
-    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-  }
-  return null;
-};
-
-// 用户登录状态
-const userToken = ref(getCookie('wuxian_session'));
-const isLoggedIn = computed(() => !!userToken.value);
-const authUsesCount = ref(parseInt(localStorage.getItem('auth_uses') || '0', 10));
-
-// 科普模式预设
-const modeOptions = [
-  { label: '通俗比喻与趣味解密', value: '通俗比喻与趣味解密' },
-  { label: '学术严谨与原理解析', value: '学术严谨与原理解析' },
-  { label: '儿童少儿问答启蒙', value: '儿童少儿问答启蒙' },
-  { label: '短视频科普爆款文案', value: '短视频科普爆款文案' }
-];
-const activeMode = ref(modeOptions[0].value);
-
-// 知识领域与受众
-const domainOptions = ['前沿科技与宇宙天文', '生物自然与人体奥秘', '历史文明与考古冷知识', '生活物理与日常化学', '心理学与大脑神经'];
-const selectedDomain = ref('前沿科技与宇宙天文');
-
-const audienceOptions = ['青少年少儿', '好奇大众', '科研爱好者', '自媒体创作者'];
-const selectedAudience = ref('好奇大众');
-
-// 科普指标评估列表
-const metricsList = [
-  { key: 'scientificRigor', label: '科学严谨度' },
-  { key: 'popularizationClarity', label: '通俗易懂度' },
-  { key: 'interestFactor', label: '趣味吸引力' },
-  { key: 'logicalDepth', label: '逻辑拆解深度' },
-  { key: 'analogyVividness', label: '生动比喻度' }
+// 1. AI 历史里程碑数据
+const timelineData = [
+  { year: '1950', title: '艾伦·图灵提出图灵测试', desc: '在论文《计算机器与智能》中定义了判断机器是否具有智能的思想实验，奠定了人工智能的概念根基。', tag: '哲学起源' },
+  { year: '1997', title: '深蓝（Deep Blue）击败国际象棋世界冠军', desc: 'IBM 超级计算机击败卡斯帕罗夫，展示了符号计算与强算力搜索在复杂博弈中的惊人能力。', tag: '重大突破' },
+  { year: '2012', title: 'AlexNet 夺冠 ImageNet', desc: '在计算机视觉识别大赛中以压倒性优势领先第二名，彻底拉开了深度学习与神经网络革命的序幕。', tag: '深度学习' },
+  { year: '2017', title: 'Transformer 架构问世', desc: 'Google 发表论文《Attention Is All You Need》，引入自注意力机制，成为现代所有大语言模型（LLM）的基座底层。', tag: 'NLP革命' },
+  { year: '2020', title: 'GPT-3 发布', desc: 'OpenAI 发布 1750 亿参数大模型，首次向世人展示了大模型的涌现能力与强大的通用零样本学习能力。', tag: '大模型时代' },
+  { year: '2022', title: 'ChatGPT 开启全民 AI 浪潮', desc: '基于人类反馈强化学习（RLHF）的对话式 AI 爆火，宣告生成式人工智能（AIGC）从学术步入工业级生产力应用。', tag: '全民普及' },
+  { year: '2024 - 至今', title: '多模态融合与推理大模型爆发', desc: '文本、画作、视频、音频的深度无缝打通。以 o1 系列及国产开源大模型为代表，AI 迈入深度思考、逻辑推理与智能体爆发时代。', tag: '推理智能体' }
 ];
 
-const aiScores = ref<Record<string, number> | null>(null);
-
-// 历史记录定义
-interface HistoryItem {
-  id: string;
-  timestamp: string;
-  mode: string;
-  domain: string;
-  input: string;
-  aiScores: Record<string, number> | null;
-  output: string;
-}
-
-const historyList = ref<HistoryItem[]>([]);
-const showHistory = ref(false);
-
-// 科普思维方法
-const scienceTips = [
-  { title: '生活类比法', formula: '抽象微观物理概念 = 宏观日常生活场景', example: '将电压比作水压、电流比作水流速度' },
-  { title: '反常识吸引法', formula: '抛出颠覆直觉的现象 + 揭示科学因果', example: '为什么热热水比冷水结冰更快（姆潘巴效应）' },
-  { title: '拟人叙事法', formula: '微观粒子/器官 = 具象角色 + 作战/协作', example: '将白细胞吞噬细菌比作城堡守卫战' }
+// 2. AI 厂商及格局数据
+const landscapeData = [
+  { name: 'OpenAI', region: 'global', description: '生成式 AI 与大语言模型领域的风向标，开创了 ChatGPT 时代，目前主攻具有自主深度推理能力的 o1 系列模型。', models: ['GPT-4o', 'GPT-4', 'o1-pro', 'DALL-E 3'] },
+  { name: 'Anthropic', region: 'global', description: '由 OpenAI 早期核心团队出走创办的明星独角兽，以“宪法 AI”主打对齐与安全，其 Claude 3.5 系列长文本处理与代码生成能力极佳。', models: ['Claude 3.5 Sonnet', 'Claude 3.5 Haiku', 'Claude 3 Opus'] },
+  { name: 'Google DeepMind', region: 'global', description: '人工智能科学研究的先驱（AlphaGo 缔造者），Gemini 1.5 具有超长原生上下文和极其强大的全模态联合理解能力。', models: ['Gemini 1.5 Pro', 'Gemini 1.5 Flash', 'Imagen 3'] },
+  { name: '阿里通义千问', region: 'domestic', description: '国内开源生态与多模态的领跑者，通义千问（Qwen）开源模型矩阵在多项国际基准评测中名列前茅，中文生态繁荣。', models: ['Qwen 2.5', 'Qwen 2.5-Coder', 'Qwen-VL', 'Qwen-Audio'] },
+  { name: 'DeepSeek (深度求索)', region: 'domestic', description: '国产大模型界的一匹超级黑马，以极致的技术效率与性价比横空出世，其推理、数学及代码补全效率处于行业一流水平。', models: ['DeepSeek-V3', 'DeepSeek-Coder', 'DeepSeek-Math'] },
+  { name: '智谱 AI', region: 'domestic', description: '清华背景 of 国内大模型独角兽先驱，GLM 系列致力于打造端侧与云端融合的智能体生态，在中英双语认知上表现优异。', models: ['GLM-4-Plus', 'GLM-4-Air', 'CogVideoX'] },
+  { name: '月之暗面 (Moonshot)', region: 'domestic', description: '凭借“Kimi 智能助手”掀起超长上下文竞赛的明星企业，支持百万字级别长文档无损解析与多轮跨文档检索交互。', models: ['Kimi Chat', 'Moonshot-v1-200k'] }
 ];
 
-// 计算纯结果文本 (剔除打分标签 [BAIKE_SCORES])
-const displayResultText = computed(() => {
-  if (!result.value) return '';
-  return result.value.replace(/\[BAIKE_SCORES\][\s\S]*?\[\/BAIKE_SCORES\]/g, '').trim();
+// 3. 核心工具数据
+const toolsData = [
+  { name: 'ChatGPT', rating: '4.9', desc: '面向个人与团队的通用智能助手，在问答、文档处理、数据分析和多语言翻译中展现极其稳定的全能表现。', tags: ['通用LLM', 'GPT-4o', '数据分析'], category: 'llm' },
+  { name: 'Claude', rating: '4.8', desc: '拥有顶级长文本理解及卓越代码编写能力的 AI。对于程序重构、文档深度提炼和学术研究对齐表现极好。', tags: ['代码分析', '长文本', '高级对齐'], category: 'llm' },
+  { name: 'Midjourney', rating: '4.8', desc: '目前生成画质与艺术氛围最强的 AI 绘画平台，擅长概念艺术插图设计、写实照片生成及 UI 原型材质图。', tags: ['图像生成', '原画设计', '艺术创作'], category: 'image' },
+  { name: 'v0.dev', rating: '4.9', desc: 'Vercel 打造的 UI 原型与前端代码交互生成平台，通过描述直接输出规范 of React, Vue 与 Tailwind 组件。', tags: ['UI生成', '前端代码', '智能体'], category: 'code' },
+  { name: 'Cursor', rating: '4.9', desc: '由 AI 驱动的原生代码编辑器，支持整库上下文理解、多行智能自动补全以及全库级别的全局重构对话。', tags: ['IDE', '代码重构', '高效率'], category: 'code' },
+  { name: 'Suno AI', rating: '4.7', desc: '现象级音乐生成平台，支持用户输入歌词与曲风，几秒钟内生成带人声起伏、和声伴奏的完整商业歌曲。', tags: ['音频生成', '词曲创作', '编曲合成'], category: 'audio' },
+  { name: 'Runway Gen-3', rating: '4.6', desc: '业内领先的高清视频生成系统，支持从文案/图片直接生成极具电影质感的短视频，镜头发散与动态融合极为平滑。', tags: ['视频生成', '电影运镜', '动态合成'], category: 'video' },
+  { name: 'v0 (UI)', rating: '4.8', desc: '全自动组件设计器，支持快速拖曳与主题修改，极大解放了前端的布局还原与骨架生成工作。', tags: ['UI设计', '原型设计'], category: 'image' }
+];
+
+const toolCategories = [
+  { label: '全部工具', value: 'all' },
+  { label: '通用大模型', value: 'llm' },
+  { label: '图像及UI生成', value: 'image' },
+  { label: '编程辅助', value: 'code' },
+  { label: '音频及视频', value: 'audio' }
+];
+
+const filteredTools = computed(() => {
+  if (selectedToolCat.value === 'all') return toolsData;
+  return toolsData.filter(t => t.category === selectedToolCat.value || (selectedToolCat.value === 'audio' && t.category === 'video'));
 });
 
-// 解析打分标签
-const parseAiScores = (rawText: string) => {
-  const match = rawText.match(/\[BAIKE_SCORES\](.*?)\[\/BAIKE_SCORES\]/);
-  if (!match) return null;
-  const content = match[1];
-  const scoresObj: Record<string, number> = {};
-  content.split(',').forEach(item => {
-    const [key, val] = item.split(':');
-    if (key && val) {
-      scoresObj[key.trim()] = parseInt(val.trim(), 10) || 4;
-    }
-  });
-  return Object.keys(scoresObj).length > 0 ? scoresObj : null;
-};
+// 4. 百科术语数据
+const glossaryData = [
+  { term: 'LLM', fullName: 'Large Language Model (大语言模型)', definition: '利用数千亿词元文本进行无监督预训练后，能够理解、交互、推理并生成符合人类逻辑语言的深层神经网络。', example: 'ChatGPT 背后所依托的 GPT-4、千问大模型背后的 Qwen-2.5 都是大语言模型的典型代表。' },
+  { term: 'Prompt', fullName: '提示词', definition: '向人工智能大模型输入的文本指令、提示信息或上下文。它是指引、约束与激励大模型输出特定理想结果的核心编程入口。', example: '“帮我写一封语气客气但态度坚决的辞职信，要求列出3个借口” 就是一段典型的 Prompt。' },
+  { term: 'RAG', fullName: 'Retrieval-Augmented Generation (检索增强生成)', definition: '由于大模型训练数据存在截止时间且容易产生幻觉，RAG 通过在回答前先检索外部可靠知识库，将检索出来的内容喂给大模型作为背景事实，从而输出准确、实时、贴近实际的应答。', example: '企业级 AI 客服通过读取公司产品说明书 PDF，在不重新训练大模型的情况下，准确回答用户的具体参数问题。' },
+  { term: 'Fine-tuning', fullName: '微调', definition: '基于通用的基座模型，使用特定行业、岗位或风格的高质量数据集进行二次训练，使其在保留通用认知能力的基础上，深度适配垂直专业任务的技术。', example: '拿一个通用的医疗大模型，输入十万例儿童感冒诊断案例进行二次训练，使其专门胜任儿科智能导诊任务。' },
+  { term: 'Token', fullName: '词元', definition: '大模型进行文本切片、编码与输出概率计算的基本语义单元。中文字符一般 1 个字对应 1~1.5 个 Token；英文约 3/4 个单词为一个 Token。', example: '大模型 API 通常按照 Token 计费，输入和生成的总字符越多，消耗 of Token 也就越多。' },
+  { term: 'RLHF', fullName: 'Reinforcement Learning from Human Feedback (人类反馈强化学习)', definition: '通过收集人类评测员对不同回答的偏好评价，训练一个奖励模型，以此引导并微调基座模型，使其输出不仅符合事实，还更对齐人类的道德规范、沟通风格与安全边界。', example: 'ChatGPT 之所以说话客气且不提供制造武器等非法内容，正是RLHF对齐训练所带来的结果。' }
+];
 
-// 计算平均分
-const getAverageScoreFromMap = (scores: Record<string, number>) => {
-  const keys = Object.keys(scores);
-  if (keys.length === 0) return '4.5';
-  const sum = keys.reduce((acc, k) => acc + (scores[k] || 4), 0);
-  return (sum / keys.length).toFixed(1);
-};
-
-const getAverageScore = (item: HistoryItem) => {
-  if (!item.aiScores) return '4.5';
-  return getAverageScoreFromMap(item.aiScores);
-};
-
-// 本地历史记录读取与保存
-const loadHistory = () => {
-  try {
-    const raw = localStorage.getItem('baike_history_records');
-    historyList.value = raw ? JSON.parse(raw) : [];
-  } catch (e) {
-    historyList.value = [];
-  }
-};
-
-const saveHistory = () => {
-  localStorage.setItem('baike_history_records', JSON.stringify(historyList.value));
-};
-
-const addHistoryRecord = () => {
-  const newItem: HistoryItem = {
-    id: Date.now().toString(),
-    timestamp: new Date().toLocaleString(),
-    mode: activeMode.value,
-    domain: selectedDomain.value,
-    input: userInput.value,
-    aiScores: aiScores.value,
-    output: result.value
-  };
-  historyList.value.unshift(newItem);
-  if (historyList.value.length > 20) {
-    historyList.value = historyList.value.slice(0, 20);
-  }
-  saveHistory();
-};
-
-const toggleHistoryDrawer = () => {
-  loadHistory();
-  showHistory.value = !showHistory.value;
-};
-
-const applyHistory = (item: HistoryItem) => {
-  userInput.value = item.input;
-  activeMode.value = item.mode;
-  selectedDomain.value = item.domain;
-  showHistory.value = false;
-  if (inputCardRef.value) {
-    inputCardRef.value.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
-};
-
-const viewHistoryOutput = (item: HistoryItem) => {
-  userInput.value = item.input;
-  result.value = item.output;
-  aiScores.value = item.aiScores;
-  showHistory.value = false;
-};
-
-// 限制与额度检测
-const isLimitReached = computed(() => {
-  if (isLoggedIn.value) {
-    return authUsesCount.value >= 15;
-  }
-  const uses = parseInt(localStorage.getItem('free_uses') || '0', 10);
-  const shared = localStorage.getItem('shared_fission') === 'true';
-  return uses >= 3 && !shared;
+const filteredGlossary = computed(() => {
+  if (!searchQuery.value.trim()) return glossaryData;
+  const q = searchQuery.value.toLowerCase();
+  return glossaryData.filter(item => 
+    item.term.toLowerCase().includes(q) || 
+    item.fullName.toLowerCase().includes(q) || 
+    item.definition.toLowerCase().includes(q)
+  );
 });
 
-const apiEndpoint = import.meta.env.DEV
-  ? '/api/local/generate'
-  : (import.meta.env.VITE_API_ENDPOINT || 'https://api.wuxian.xyz/api/v1/generate');
-
-const handleGenerate = async () => {
-  if (isLimitReached.value) {
-    showFission.value = true;
-    return;
+const toggleGlossary = (index: number) => {
+  if (expandedGlossaryIndex.value === index) {
+    expandedGlossaryIndex.value = null;
+  } else {
+    expandedGlossaryIndex.value = index;
   }
+};
 
-  loading.value = true;
-  errorMsg.value = '';
-  result.value = '';
-  aiScores.value = null;
-
+const handleCopyLink = async (toolName: string) => {
   try {
-    const response = await fetch(apiEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify({
-        taskType: 'text',
-        prompt: `任务指导: ${promptTopic.value}\n【科普模式】: ${activeMode.value}\n【知识领域】: ${selectedDomain.value}\n【目标受众】: ${selectedAudience.value}\n【问题/现象描述】: ${userInput.value}`,
-        style: activeMode.value
-      })
-    });
-
-    const data = await response.json();
-    if (data.error) {
-      errorMsg.value = data.error;
-    } else {
-      result.value = data.result;
-      aiScores.value = parseAiScores(data.result);
-      
-      addHistoryRecord();
-
-      if (isLoggedIn.value) {
-        const nextAuthUses = authUsesCount.value + 1;
-        localStorage.setItem('auth_uses', nextAuthUses.toString());
-        authUsesCount.value = nextAuthUses;
-      } else {
-        const currentUses = parseInt(localStorage.getItem('free_uses') || '0', 10);
-        localStorage.setItem('free_uses', (currentUses + 1).toString());
-      }
-    }
-  } catch (err: any) {
-    errorMsg.value = '请求接口失败，请检查网络或本地代理服务。';
-  } finally {
-    loading.value = false;
-  }
-};
-
-const handleApplyTemplate = (payload: { prompt: string; mode?: string; domain?: string }) => {
-  userInput.value = payload.prompt;
-  if (payload.mode) activeMode.value = payload.mode;
-  if (payload.domain) selectedDomain.value = payload.domain;
-  if (inputCardRef.value) {
-    inputCardRef.value.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
-};
-
-const handleUnlocked = () => {
-  showFission.value = false;
-  handleGenerate();
-};
-
-const resetResult = () => {
-  result.value = '';
-  aiScores.value = null;
-};
-
-const copyText = async () => {
-  try {
-    await navigator.clipboard.writeText(displayResultText.value);
+    await navigator.clipboard.writeText(toolName);
     copied.value = true;
     setTimeout(() => {
       copied.value = false;
-    }, 2000);
+    }, 1500);
   } catch (err) {
-    errorMsg.value = '复制失败，请手动选择复制。';
+    console.error('复制失败', err);
   }
 };
-
-onMounted(() => {
-  loadHistory();
-});
 </script>
 
 <style scoped>
-.text-link-btn {
-  background: none;
-  border: none;
-  color: #a5b4fc;
-  font-size: 0.775rem;
-  cursor: pointer;
-  transition: color 0.2s ease;
+/* 纯静态百科特定局部样式 */
+.static-baike-container {
+  max-width: 960px !important;
 }
-.text-link-btn:hover {
+
+.navigation-tabs {
+  margin: 0.5rem 0 1.5rem 0;
+}
+
+.main-content-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.panel-section-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
   color: var(--text-primary);
-  text-decoration: underline;
+}
+
+.panel-section-desc {
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+/* 1. 时间轴样式 */
+.vertical-timeline {
+  position: relative;
+  padding-left: 2rem;
+  border-left: 2px solid rgba(255, 255, 255, 0.08);
+  margin-left: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.timeline-item {
+  position: relative;
+}
+
+.timeline-badge-year {
+  position: absolute;
+  left: calc(-2rem - 6px);
+  top: 0.25rem;
+  background: var(--primary-gradient);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 99px;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+  transform: translateX(-50%);
+}
+
+.timeline-content-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  transition: all 0.2s ease;
+}
+
+.timeline-content-card:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(99, 102, 241, 0.2);
+  transform: translateX(4px);
+}
+
+.timeline-item-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+  color: var(--text-primary);
+}
+
+.timeline-item-desc {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 0.6rem;
+}
+
+.timeline-item-tag {
+  display: inline-block;
+  font-size: 0.72rem;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 8px;
+  border-radius: 4px;
+  color: var(--text-secondary);
+}
+
+/* 2. 大模型格局网格 */
+.landscape-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .landscape-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.vendor-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.vendor-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.vendor-card-header h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.vendor-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 99px;
+  border: 1px solid transparent;
+}
+
+.vendor-badge.global {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.vendor-badge.domestic {
+  background: rgba(99, 102, 241, 0.1);
+  color: #6366f1;
+  border-color: rgba(99, 102, 241, 0.2);
+}
+
+.vendor-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  flex-grow: 1;
+}
+
+.vendor-models {
+  font-size: 0.8rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  padding-top: 0.6rem;
+}
+
+.model-tag-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+
+.model-tag {
+  font-size: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* 3. 工具选型样式 */
+.tool-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.filter-chip {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  padding: 0.4rem 0.8rem;
+  border-radius: 99px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-chip:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.filter-chip.active {
+  background: var(--primary-gradient);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+}
+
+.tools-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .tools-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.tool-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.tool-card:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(99, 102, 241, 0.15);
+  transform: translateY(-2px);
+}
+
+.tool-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tool-card-header h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.tool-rating {
+  font-size: 0.8rem;
+  color: #fbbf24;
+  font-weight: 700;
+}
+
+.tool-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  flex-grow: 1;
+}
+
+.tool-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.tool-tag {
+  font-size: 0.72rem;
+  background: rgba(99, 102, 241, 0.06);
+  color: #a5b4fc;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.tool-card-action {
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  padding-top: 0.6rem;
+  text-align: right;
+}
+
+.action-btn-sm {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.action-btn-sm:hover {
+  background: var(--primary-gradient);
+  color: #fff;
+  border-color: transparent;
+}
+
+/* 4. 术语百科样式 */
+.search-bar-wrapper {
+  margin-bottom: 1.25rem;
+}
+
+.glossary-search-input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  color: var(--text-primary);
+  font-size: 0.92rem;
+  font-family: inherit;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.glossary-search-input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.glossary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.glossary-item-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 10px;
+  padding: 0.85rem 1.2rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.glossary-item-card:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.glossary-item-card.expanded {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(99, 102, 241, 0.15);
+}
+
+.glossary-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.glossary-term-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.term-abbr {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #a855f7;
+}
+
+.term-full-name {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.expand-indicator {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.glossary-item-body {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.glossary-example-box {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.82rem;
+  color: var(--text-primary);
+  border-left: 3px solid #10b981;
+}
+
+.no-results-box {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
 }
 </style>
