@@ -2,10 +2,10 @@
   <section class="nomads-showcase-section">
     <div class="showcase-header">
       <div class="header-left">
-        <h2 class="showcase-title">趣味百科与科普问答实战模板库</h2>
-        <p class="showcase-subtitle">精选高频科学现象与历史冷知识探究，点击“一键套用”生成通俗解读</p>
+        <h2 class="showcase-title">实战案例与模板库 (Nomads Showcase)</h2>
+        <p class="showcase-subtitle">精选高频实战场景，点击“一键套用”快速生成高质量结果</p>
       </div>
-      <span class="showcase-badge">已收录 {{ showcaseItems.length }} 个科普主题</span>
+      <span class="showcase-badge">已收录 {{ showcaseItems.length }} 个实战模板</span>
     </div>
 
     <div class="showcase-grid">
@@ -16,7 +16,7 @@
       >
         <div class="card-header">
           <span class="scenario-tag">{{ item.tag }}</span>
-          <span class="usage-count">{{ item.usageCount }} 次探索</span>
+          <span class="usage-count">{{ item.usageCount }} 次应用</span>
         </div>
 
         <div class="card-content">
@@ -41,8 +41,13 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
+const props = defineProps<{
+  appTitle?: string;
+  isImage?: boolean;
+}>();
+
 const emit = defineEmits<{
-  (e: 'apply-template', payload: { prompt: string; mode?: string; domain?: string }): void;
+  (e: 'apply-template', payload: { prompt: string; style?: string }): void;
 }>();
 
 export interface ShowcaseItem {
@@ -50,73 +55,105 @@ export interface ShowcaseItem {
   tag: string;
   title: string;
   prompt: string;
-  mode?: string;
-  domain?: string;
+  style?: string;
   usageCount: string;
 }
 
-const showcaseItems = computed<ShowcaseItem[]>(() => [
-  {
-    id: 'baike-1',
-    tag: '宇宙物理',
-    title: '黑洞形成与时间膨胀的通俗比喻',
-    prompt: '为什么靠近黑洞时间会变慢？请用生动有趣的比喻向高中生解释引力透镜与时间膨胀效应。',
-    mode: '通俗比喻与趣味解密',
-    domain: '前沿科技与宇宙天文',
-    usageCount: '45.8k'
-  },
-  {
-    id: 'baike-2',
-    tag: '量子力学',
-    title: '量子纠缠幽灵作用的生动拆解',
-    prompt: '如果向小朋友解释量子纠缠，为什么爱因斯坦称其为“幽灵般的超距作用”？用一双鞋子的比喻来做科普。',
-    mode: '儿童少儿问答启蒙',
-    domain: '前沿科技与宇宙天文',
-    usageCount: '39.2k'
-  },
-  {
-    id: 'baike-3',
-    tag: '生物人体',
-    title: '人体免疫系统对抗病毒的城堡战争',
-    prompt: '把白细胞、T细胞与抗体比作防御城堡的兵种，详细拆解感冒时发烧与免疫反应的作战全过程。',
-    mode: '通俗比喻与趣味解密',
-    domain: '生物自然与人体奥秘',
-    usageCount: '52.1k'
-  },
-  {
-    id: 'baike-4',
-    tag: '生活化学',
-    title: '切洋葱流泪与雨后清香的化学奥秘',
-    prompt: '为什么切洋葱时会让人流泪？以及下雨后空气中特别好闻的泥土清香（土臭素）到底是从哪里来的？',
-    mode: '通俗比喻与趣味解密',
-    domain: '生活物理与日常化学',
-    usageCount: '31.6k'
-  },
-  {
-    id: 'baike-5',
-    tag: '历史冷知识',
-    title: '胡椒比金子贵的古代香料战争冷知识',
-    prompt: '为什么在中世纪欧洲胡椒能当货币用？揭秘地理大发现背后胡椒与香料贸易的搞笑历史冷知识。',
-    mode: '短视频科普爆款文案',
-    domain: '历史文明与考古冷知识',
-    usageCount: '28.4k'
-  },
-  {
-    id: 'baike-6',
-    tag: '脑科学',
-    title: '人为什么会产生“似曾相识”错觉',
-    prompt: '从大脑海马体与神经元信号传输延迟角度，解释心理学和脑科学上的“既视感（Déjà vu）”现象。',
-    mode: '学术严谨与原理解析',
-    domain: '心理学与大脑神经',
-    usageCount: '36.9k'
+// 模拟实战案例数据库（支持根据文本/图像类及应用主题切换）
+const showcaseItems = computed<ShowcaseItem[]>(() => {
+  if (props.isImage) {
+    return [
+      {
+        id: 'img-1',
+        tag: '写真肖像',
+        title: '商务精英形象照',
+        prompt: '高端写字楼背景，身穿深蓝色西装，眼神自信专注，赛博朋克光影效果',
+        style: '<photography>',
+        usageCount: '18.5k'
+      },
+      {
+        id: 'img-2',
+        tag: '概念插画',
+        title: '未来科幻城市海报',
+        prompt: '霓虹灯光的赛博朋克立体城市，飞行汽车，高品质概念插画，8k分辨率',
+        style: '<illustration>',
+        usageCount: '24.1k'
+      },
+      {
+        id: 'img-3',
+        tag: '二次元动漫',
+        title: '日系国潮动漫角色',
+        prompt: '穿着现代汉服的国风少年，手持纸伞，水彩漫感，唯美光感与柔光滤镜',
+        style: '<anime>',
+        usageCount: '15.9k'
+      },
+      {
+        id: 'img-4',
+        tag: '水彩艺术',
+        title: '治愈系自然风景画',
+        prompt: '晨雾中的森林湖泊，阳光穿透树林，水彩渐变质感，温馨治愈风格',
+        style: '<watercolor>',
+        usageCount: '12.3k'
+      }
+    ];
+  } else {
+    return [
+      {
+        id: 'text-1',
+        tag: '职场总结',
+        title: '周报 OKR 成果提炼',
+        prompt: '本周完成了核心模块优化与线上异常排查，请帮我梳理为具备量化指标的 OKR 汇报文案',
+        style: '专业干练，结果导向',
+        usageCount: '32.8k'
+      },
+      {
+        id: 'text-2',
+        tag: '高情商沟通',
+        title: '拒绝不合理加班话术',
+        prompt: '领导在周末突然布置非紧急任务，如何高情商、委婉且有理有据地推迟到工作日处理？',
+        style: '高情商，委婉，有情调',
+        usageCount: '28.4k'
+      },
+      {
+        id: 'text-3',
+        tag: '短视频文案',
+        title: '知识干货吸睛开头',
+        prompt: '准备制作一条关于高效学习法的短视频，设计 3 个能在前 3 秒留住用户的爆款口播开头',
+        style: '专业干练，结果导向',
+        usageCount: '45.1k'
+      },
+      {
+        id: 'text-4',
+        tag: '商务公文',
+        title: '跨部门协同申请函',
+        prompt: '因项目上线需要研发部门配合联调，撰写一份正式、严谨且明确时间节点的协同申请书',
+        style: '专业干练，结果导向',
+        usageCount: '19.7k'
+      },
+      {
+        id: 'text-5',
+        tag: '小红书种草',
+        title: '实战干货笔记排版',
+        prompt: '分享 5 个提升日常工作效率的文字工具，语言亲切，搭配吸引人的标题与 Emoji 排版',
+        style: '高情商，委婉，有情调',
+        usageCount: '36.2k'
+      },
+      {
+        id: 'text-6',
+        tag: '学术润色',
+        title: '论文摘要与结论重构',
+        prompt: '将以下粗糙的研究结论重写为学术规范、逻辑严密且无语法语病的论文摘要总结',
+        style: '专业干练，结果导向',
+        usageCount: '22.0k'
+      }
+    ];
   }
-]);
+});
 
 function applyTemplate(item: ShowcaseItem) {
   emit('apply-template', {
     prompt: item.prompt,
-    mode: item.mode,
-    domain: item.domain
+    style: item.style
   });
 }
 </script>

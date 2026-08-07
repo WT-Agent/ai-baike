@@ -1,6 +1,14 @@
 {
   "title": "网腾无限AI - AI认知地图与科普工具库",
   "category": "writing",
-  "type": "static",
-  "wechatId": "ai_wuxian_xyz"
+  "type": "text",
+  "wechatId": "ai_wuxian_xyz",
+  "promptTopic": "<div align=\"center\">",
+  "agentConfig": {
+    "prompt": "<div align=\"center\">",
+    "description": "网腾无限AI - AI认知地图与科普工具库 默认生成设定",
+    "model": "deepseek-chat",
+    "version": "1.0.0",
+    "temperature": 0.7
+  }
 }
